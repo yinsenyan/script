@@ -39,5 +39,3 @@ for i in fp.readlines()[1:]:
 fp.close()
 os.remove('ipaddress')
 
-
-
