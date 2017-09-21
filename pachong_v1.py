@@ -1,23 +1,22 @@
 #-*- c
 import requests
 import re
-#http://www.juemei.com/renwu/201609/5122_4.html
-#<div class="wrap"><img src="http://img.juemei.com/album/2016-09-20/57e092c9a9007.jpg">
-#<div class="add_album_tips">next page</div>
-#</div>
+
 
 def GetHtml(url):
-	pattern = '<div class="wrap"><img src="(.*?)">'
+#<a href="networking-concepts-HOWTO-1.html">Introduction</a>
+	pattern = '<A HREF=".*?">(.*?)</A>'
 	html = requests.get(url)
+	print html.status_code
 	if html.text == '404':
 	 	img_url = 'Url not found'
 	else:
-		img_url = re.search(pattern, html.content, re.S).group(1)
+		img_url = re.findall(pattern, html.content, re.S)#.groups()
 	return img_url
 
 if __name__ == '__main__':
-	for i in range(1,10):
-		url = 'http://www.juemei.com/renwu/201609/5122_%d.html' % (i)
-		print GetHtml(url)
-	# url = 'http://www.juemei.com/renwu/201609/5122_2.html'
-	# print GetHtml(url)
+	for i in range(1):
+		url = 'http://www.netfilter.org/documentation/HOWTO//networking-concepts-HOWTO.html'
+		l = GetHtml(url)
+		for i in  range(1,len(l)):
+			print i, l[i]
