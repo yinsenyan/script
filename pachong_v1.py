@@ -7,6 +7,7 @@ def GetHtml(url):
 #<a href="networking-concepts-HOWTO-1.html">Introduction</a>
 	pattern = '<A HREF=".*?">(.*?)</A>'
 	html = requests.get(url)
+	
 	print html.status_code
 	if html.text == '404':
 	 	img_url = 'Url not found'
