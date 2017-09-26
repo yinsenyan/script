@@ -1,3 +1,7 @@
+#/usr/bin/python
+#author yanshen(01deyishu@gmail.com)
+#date:Tue Sep 26 14:43:48 UTC 2017
+#This script prints out all the IP ISP information on the mtr path
 import os
 import re
 import sys
