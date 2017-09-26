@@ -1,41 +1,25 @@
-#!/user/bin/python
-#a tool for mtr , search the ip's isp of every ttl in the traceroute 
-
 import os
+import re
 import sys
-import json
-import socket
-import urllib2
+import time
+import requests
 
-ipaddress = sys.argv[1]
-osname = socket.gethostname()
-st1='mtr -n -i 0.3 -c 10 -r -w'+' '+ ipaddress+' '+'> ipaddress'
+ipaddr = sys.argv[1]
+mtr = 'mtr -n -i 0.3 -c 10 -r -w'+' '+ ipaddr+' '+'> mtr-txt'
+os.system(mtr)
 
-def GetIP(ip):
-    respone = urllib2.urlopen('http://ip.taobao.com/service/getIpInfo.php?ip='+ip)
-    d = respone.read()
-    data = json.loads(d)
-    return data['data']['country'],data['data']['city'],data['data']['isp']
+def GetIPInfo(ip):
+    info = requests.get('http://freeapi.ipip.net/' + ip)
+    return info.content.replace('"','').replace(',,,',',')
 
-os.system(st1)
-fp = open('ipaddress')
-print 'HOST: ' + osname + '           Loss%   Snt  Last   Avg   Best  Wrst StDev        ISP'
-for i in fp.readlines()[1:]:
-    j=i.strip()
-    for ip in i.strip().split()[1:2]:
-        if ip in i.strip().split()[1:2]:
-            if ip == '???':
-                ip = 'Unkown IP address'
-                print j + '     ' + ip
-            elif  ip == '`|--':
-                del ip
-            elif ip == '|--':
-                del ip
-            else:
-                x,y,z = GetIP()
-                if x == 'IANA':
-                    z='Internet IP'
-                print  unicode(j + '    ' + x + y + z).encode('utf-8')
-fp.close()
-os.remove('ipaddress')
+with open('mtr-txt') as mtr_info:
+    info = ''
+    pattern = '(?<![\.\d])(?:\d{1,3}\.){3}\d{1,3}(?![\.\d])'
+    for i in mtr_info.readlines():
+        ip = i.split(' ')[3]
+        if re.match(pattern, ip, flags=0):
+            info = GetIPInfo(ip)
+            time.sleep(1)
+        print i.replace('\n',''), info
 
+os.remove('mtr-txt')
