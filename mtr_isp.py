@@ -19,7 +19,7 @@ with open('mtr-txt') as mtr_info:
         ip = i.split(' ')[3]
         if re.match(pattern, ip, flags=0):
             info = GetIPInfo(ip)
-            time.sleep(3)
+            time.sleep(1)
         print i.replace('\n',''), info
 
 os.remove('mtr-txt')
