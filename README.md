@@ -11,3 +11,9 @@ date:2017年 9月12日 星期二 10时26分06秒 CST
 
 ## translate.py
 调用百度的免费API实现一个命令行的翻译工具，用户id和密码可以自己申请，嫌麻烦有需要的邮件：01deyishu@gmail.com
+可以这么用：
+```
+echo 'python /usr/local/bin/translate.py $1' > tl
+chmod a+x tl
+mv tl `echo $PATH | awk -F ':' '{print $1}'`
+```
