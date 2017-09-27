@@ -1,5 +1,5 @@
 #/usr/bin/env python
-#调用百度api实现单词翻译命令行工具
+#call baidu api to translate word
 #coding=utf8
 
 import httplib
@@ -24,8 +24,8 @@ def analysis_lang():
 	return word, fromLang, toLang
 
 def translate(option):
-	appid = ['id']
-	secretKey = ['password']
+	appid = 'id'
+	secretKey = 'password'
 	word = option[0]
 	fromLang = option[1]
 	toLang = option[2]
