@@ -1,4 +1,4 @@
-# My python Scrapy/Script
+# My python/shell Script
 
 author: yanshen
 date:2017年 9月12日 星期二 10时26分06秒 CST
@@ -17,3 +17,6 @@ echo 'python /usr/local/bin/translate.py $1' > tl
 chmod a+x tl
 mv tl `echo $PATH | awk -F ':' '{print $1}'`
 ```
+
+## mac_trans.py
+转换mac地址格式(解决服务器和交换机mac地址格式不同，每次手动改很烦的问题)
