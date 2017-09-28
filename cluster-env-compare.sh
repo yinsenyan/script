@@ -51,10 +51,10 @@ function get_nic(){
     nic=`ssh root@$1 cat  /proc/net/dev | awk '{print $1}' | grep : | grep -vE 'lo|tunl' | tr -s ':' ' '`
     for i in $nic
     do
-        if ssh root@$1 ethtool -i $i | grep igb > /dev/NULL
+        if ssh root@$1 ethtool -i $i | grep igb > /dev/null
         then
             echo -n $i:1G ' '
-        elif ssh root@$1 ethtool -i $i | grep ixgbe > /dev/NULL
+        elif ssh root@$1 ethtool -i $i | grep ixgbe > /dev/null
         then
             echo -n $i:10G ' '
         fi
@@ -78,7 +78,6 @@ echo host"  | "kernel_version"   | "os_version"     |     "docker_version" | "ne
 echo ----"  | "--------------"   | "----------"     |     "------" | "-------"      |  "---" | "---" | "----"    |    "--- >> $filename 
 for i in $*
 do
-role='net'
 echo $i " | " $(get_kernel $i) " | " $(get_os_version $i) " | " $(get_docker_version $i) " | " $(get_net_info $i) " | " $(get_cpu_member $i) " | " $(get_mem $i) " | " $(get_disk $i) " | " $(get_nic $i) >> $filename 
 done
 
