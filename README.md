@@ -21,3 +21,6 @@ mv tl `echo $PATH | awk -F ':' '{print $1}'`
 
 ## mac_trans.py
 转换mac地址格式(解决服务器和交换机mac地址格式不同，每次手动改很烦的问题)
+
+## irq.py
+网卡绑定软中断到不同CPU
