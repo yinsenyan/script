@@ -24,3 +24,15 @@ mv tl `echo $PATH | awk -F ':' '{print $1}'`
 
 ## irq.py
 网卡绑定软中断到不同CPU
+
+## seek_switch.py
+通过ping的ttl判断远端IP是否为交换机，目前仅支持CIDR大于等于24位的扫描
+
+## ospf_status.py
+监控交换机ospf状态的脚本
+
+## pachong_v1.py
+练手的爬虫，v0.1版本
+
+## ourhdr.h
+学习unix高级环境编程的头文件
