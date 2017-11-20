@@ -1,231 +1,133 @@
-#ifndef _APUE_H
-#define _APUE_H
+/*
+ * Our own header, to be included before all standard system headers.
+ */
+#ifndef	_APUE_H
+#define	_APUE_H
 
+#define _POSIX_C_SOURCE 200809L
+
+#if defined(SOLARIS)		/* Solaris 10 */
 #define _XOPEN_SOURCE 600
+#else
+#define _XOPEN_SOURCE 700
+#endif
 
-#include <sys/types.h>
+#include <sys/types.h>		/* some systems still require this */
 #include <sys/stat.h>
-#include <sys/termios.h>
-#ifndef TIOCGWINSZ
+#include <sys/termios.h>	/* for winsize */
+#if defined(MACOS) || !defined(TIOCGWINSZ)
 #include <sys/ioctl.h>
 #endif
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
 
-#include <errno.h>
-#include <stdarg.h>
-#include <syslog.h>
+#include <stdio.h>		/* for convenience */
+#include <stdlib.h>		/* for convenience */
+#include <stddef.h>		/* for offsetof */
+#include <string.h>		/* for convenience */
+#include <unistd.h>		/* for convenience */
+#include <signal.h>		/* for SIG_ERR */
 
-#define MAXLINE 4096
+#define	MAXLINE	4096			/* max line length */
 
-#define FILE_MODE (S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH)
-#define DIR_MODE (FILE_MODE | S_IXUSR | S_IXGRP | S_IXOTH)
+/*
+ * Default file access permissions for new files.
+ */
+#define	FILE_MODE	(S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH)
 
-typedef void Sigfunc(int);
+/*
+ * Default permissions for new directories.
+ */
+#define	DIR_MODE	(FILE_MODE | S_IXUSR | S_IXGRP | S_IXOTH)
 
-#if defined(SIG_IGN) && !defined(SIG_ERR)
-#define SIG_ERR ((Sigfunc *)-1)
+typedef	void	Sigfunc(int);	/* for signal handlers */
+
+#define	min(a,b)	((a) < (b) ? (a) : (b))
+#define	max(a,b)	((a) > (b) ? (a) : (b))
+
+/*
+ * Prototypes for our own functions.
+ */
+char	*path_alloc(size_t *);				/* {Prog pathalloc} */
+long	 open_max(void);					/* {Prog openmax} */
+
+int		 set_cloexec(int);					/* {Prog setfd} */
+void	 clr_fl(int, int);
+void	 set_fl(int, int);					/* {Prog setfl} */
+
+void	 pr_exit(int);						/* {Prog prexit} */
+
+void	 pr_mask(const char *);				/* {Prog prmask} */
+Sigfunc	*signal_intr(int, Sigfunc *);		/* {Prog signal_intr_function} */
+
+void	 daemonize(const char *);			/* {Prog daemoninit} */
+
+void	 sleep_us(unsigned int);			/* {Ex sleepus} */
+ssize_t	 readn(int, void *, size_t);		/* {Prog readn_writen} */
+ssize_t	 writen(int, const void *, size_t);	/* {Prog readn_writen} */
+
+int		 fd_pipe(int *);					/* {Prog sock_fdpipe} */
+int		 recv_fd(int, ssize_t (*func)(int,
+		         const void *, size_t));	/* {Prog recvfd_sockets} */
+int		 send_fd(int, int);					/* {Prog sendfd_sockets} */
+int		 send_err(int, int,
+		          const char *);			/* {Prog senderr} */
+int		 serv_listen(const char *);			/* {Prog servlisten_sockets} */
+int		 serv_accept(int, uid_t *);			/* {Prog servaccept_sockets} */
+int		 cli_conn(const char *);			/* {Prog cliconn_sockets} */
+int		 buf_args(char *, int (*func)(int,
+		          char **));				/* {Prog bufargs} */
+
+int		 tty_cbreak(int);					/* {Prog raw} */
+int		 tty_raw(int);						/* {Prog raw} */
+int		 tty_reset(int);					/* {Prog raw} */
+void	 tty_atexit(void);					/* {Prog raw} */
+struct termios	*tty_termios(void);			/* {Prog raw} */
+
+int		 ptym_open(char *, int);			/* {Prog ptyopen} */
+int		 ptys_open(char *);					/* {Prog ptyopen} */
+#ifdef	TIOCGWINSZ
+pid_t	 pty_fork(int *, char *, int, const struct termios *,
+		          const struct winsize *);	/* {Prog ptyfork} */
 #endif
 
-#define min(a,b) ((a) < (b)) ? ((a) : (b))
-#define max(a,b) ((a) > (b)) ? ((a) : (b))
+int		lock_reg(int, int, int, off_t, int, off_t); /* {Prog lockreg} */
 
-char *path_alloc(int *);
-long open_max(void);
-void chr_fl(int, int);
-void set_fl(int, int);
-void pr_exit(int);
-void pr_mask(const char *);
-Sigfunc *Signal_intr(int, Sigfunc *);
+#define	read_lock(fd, offset, whence, len) \
+			lock_reg((fd), F_SETLK, F_RDLCK, (offset), (whence), (len))
+#define	readw_lock(fd, offset, whence, len) \
+			lock_reg((fd), F_SETLKW, F_RDLCK, (offset), (whence), (len))
+#define	write_lock(fd, offset, whence, len) \
+			lock_reg((fd), F_SETLK, F_WRLCK, (offset), (whence), (len))
+#define	writew_lock(fd, offset, whence, len) \
+			lock_reg((fd), F_SETLKW, F_WRLCK, (offset), (whence), (len))
+#define	un_lock(fd, offset, whence, len) \
+			lock_reg((fd), F_SETLK, F_UNLCK, (offset), (whence), (len))
 
-int tty_cbreak(int);
-int tty_raw(int);
-int tty_reset(int);
-void tty_atexit(void);
-#ifdef ECHO
-struct termios *tty_termios(void);
-#endif
+pid_t	lock_test(int, int, off_t, int, off_t);		/* {Prog locktest} */
 
-void sleep_us(unsigned int);
-ssize_t readn(int, void *, ssize_t);
-ssize_t writen(int, const void *, ssize_t);
-void daemonize(const char *);
+#define	is_read_lockable(fd, offset, whence, len) \
+			(lock_test((fd), F_RDLCK, (offset), (whence), (len)) == 0)
+#define	is_write_lockable(fd, offset, whence, len) \
+			(lock_test((fd), F_WRLCK, (offset), (whence), (len)) == 0)
 
-int s_pipe(int *);
-int recv_fd(int, ssize_t (*func)(int, const void *, size_t));
-int send_fd(int, int);
-int send_err(int, int, const char *);
-int serv_listen(const char *);
-int serv_accept(int, uid_t *);
-int cli_conn(const char *);
-int buf_args(char *, int (*func)(int, char **));
+void	err_msg(const char *, ...);			/* {App misc_source} */
+void	err_dump(const char *, ...) __attribute__((noreturn));
+void	err_quit(const char *, ...) __attribute__((noreturn));
+void	err_cont(int, const char *, ...);
+void	err_exit(int, const char *, ...) __attribute__((noreturn));
+void	err_ret(const char *, ...);
+void	err_sys(const char *, ...) __attribute__((noreturn));
 
-int ptym_open(char *, int);
-int ptys_open(char *);
-#ifdef TIOCGWINSZ
-pid_t pty_fork(int *, char *, const struct termios *, const struct winsize *);
-#endif
+void	log_msg(const char *, ...);			/* {App misc_source} */
+void	log_open(const char *, int, int);
+void	log_quit(const char *, ...) __attribute__((noreturn));
+void	log_ret(const char *, ...);
+void	log_sys(const char *, ...) __attribute__((noreturn));
+void	log_exit(int, const char *, ...) __attribute__((noreturn));
 
-int lock_reg(int, int, int, off_t, int, off_t);
-#define read_lock(fd, offset, whence, len) lock_reg((fd), F_SETLK, F_RDLCK, (offset), (whence), (len))
-#define readw_lock(fd, offset, whence, len) lock_reg((fd), F_SETLKW, F_RDLCK, (offset), (whence), (len))
-#define write_lock(fd, offset, whence, len) lock_reg((fd), F_SETLK, F_WRLCK, (offset), (whence), (len))
-#define writew_lock(fd, offset, whence, len) lock_reg((fd), F_SETLKW, F_WRLCK, (offset), (whence), (len))
-#define un_lock(fd, offset, whence, len) lock_reg((fd), F_SETLK, F_UNLCK, (offset), (whence), (len))
+void	TELL_WAIT(void);		/* parent/child from {Sec race_conditions} */
+void	TELL_PARENT(pid_t);
+void	TELL_CHILD(pid_t);
+void	WAIT_PARENT(void);
+void	WAIT_CHILD(void);
 
-pid_t lock_test(int, int, off_t, int, off_t);
-
-#define is_read_lockable(fd, offset, whence, len) (lock_test((fd), F_RDLCK, (offset), (whence), (len)) == 0)
-#define is_write_lockable(fd, offset, whence, len) (lock_test((fd), F_WRLCK, (offset), (whence), (len)) == 0)
-
-void err_dump(const char *, ...);
-void err_msg(const char *, ...);
-void err_quit(const char *, ...);
-void err_exit(int, const char *, ...);
-void err_ret(const char *, ...);
-void err_sys(const char *, ...);
-
-void log_msg(const char *, ...);
-void log_open(const char *, int, int);
-void log_quit(const char *, ...);
-void log_ret(const char *, ...);
-void log_sys(const char *, ...);
-
-void TELL_WAIT(void);
-void TELL_PARENT(pid_t);
-void TELL_CHILD(pid_t);
-void WAIT_PARENT(void);
-void WAIT_CHILD(void);
-#endif
-
-static void err_doit(int, int, const char *, va_list);
-
-void err_ret(const char *fmt, ...)
-{
-	va_list ap;
-	va_start(ap, fmt);
-	err_doit(1, errno, fmt, ap);
-	va_end(ap);
-}
-
-void err_sys(const char *fmt, ...)
-{
-	va_list ap;
-	va_start(ap, fmt);
-	err_doit(1, errno, fmt, ap);
-	va_end(ap);
-	exit(1);
-}
-
-void err_exit(int error, const char *fmt, ...)
-{
-	va_list ap;
-	va_start(ap, fmt);
-	err_doit(1, errno, fmt, ap);
-	va_end(ap);
-	exit(1);
-}
-
-void err_dump(const char *fmt, ...)
-{
-	va_list ap;
-	va_start(ap, fmt);
-	err_doit(1, errno, fmt, ap);
-	va_end(ap);
-	abort();
-	exit(1);
-}
-
-void err_msg(const char *fmt, ...)
-{
-	va_list ap;
-	va_start(ap, fmt);
-	err_doit(0, 0, fmt, ap);
-	va_end(ap);
-}
-
-void err_quit(const char *fmt, ...)
-{
-	va_list ap;
-	va_start(ap, fmt);
-	err_doit(0, 0, fmt, ap);
-	va_end(ap);
-	exit(1);
-}
-
-static void err_doit(int errnoflag, int error, const char *fmt, va_list ap)
-{
-	char buf[MAXLINE];
-	vsprintf(buf, fmt, ap);
-	if (errnoflag)
-		snprintf(buf + strlen(buf), MAXLINE-strlen(buf), ": %s", strerror(errno));
-	strcat(buf, "\n");
-	fflush(stdout);
-	fputs(buf, stderr);
-	fflush(NULL);
-}
-
-static void log_doit(int, int, const char *, va_list ap);
-extern int log_to_stderr;
-
-void log_open(const char *ident, int option, int facility)
-{
-	if (log_to_stderr == 0)
-		openlog(ident, option, facility);
-}
-
-void log_ret(const char *fmt, ...)
-{
-	va_list ap;
-	va_start(ap, fmt);
-	log_doit(1, LOG_ERR, fmt, ap);
-	va_end(ap);
-	return;
-}
-
-void log_sys(const char *fmt, ...)
-{
-	va_list ap;
-	va_start(ap, fmt);
-	log_doit(1, LOG_ERR, fmt, ap);
-	va_end(ap);
-	exit(2);
-}
-
-void log_msg(const char *fmt, ...)
-{
-	va_list ap;
-	va_start(ap, fmt);
-	log_doit(0, LOG_ERR, fmt, ap);
-	va_end(ap);
-}
-
-void log_quit(const char *fmt, ...)
-{
-	va_list ap;
-	va_start(ap, fmt);
-	log_doit(0, LOG_ERR, fmt, ap);
-	va_end(ap);
-	exit(2);
-}
-
-static void log_doit(int errnoflag, int priority, const char *fmt, va_list ap)
-{
-	int errno_save;
-	char buf[MAXLINE];
-
-	errno_save = errno;
-	vsprintf(buf, fmt, ap);
-	if(errnoflag)
-		snprintf(buf + strlen(buf), MAXLINE-strlen(buf), ": %s", strerror(errno_save));
-	strcat(buf, "\n");
-	if (log_to_stderr) {
-		fflush(stdout);
-		fputs(buf, stderr);
-		fflush(stderr);
-	} else {
-		syslog(priority, buf);
-	}
-}
+#endif	/* _APUE_H */
