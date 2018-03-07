@@ -1,3 +1,9 @@
+//需求：
+//0. 通过参数指定集群、机器、线路
+//1. 停止某急群中某台服务器的IP的解析
+//2. 停止某集群中某个运营商的IP的解析
+//3. 如果2中停止的是默认运营商，则选定另一个运营商修改为默认
+//4. 恢复到预期的解析状态
 package main
 
 import (
@@ -16,9 +22,9 @@ type post struct {
 	record_id string
 }
 
-type domain struct {
+type response struct {
 	Status status   `json:"status"`
-	Domain string   `json:"domain"`
+	Domain domain   `json:"domain"`
 	Info   string   `json:"info"`
 	Record []record `json:"records"`
 }
@@ -27,6 +33,13 @@ type status struct {
 	Code       string `json:"code"`
 	Message    string `json:"message"`
 	Created_at string `json:"created_at"`
+}
+
+type domain struct {
+	Id     float64 `json:"id"`
+	Name   string  `json:"name"`
+	Owner  string  `json:"owner"`
+	Status string  `json:"status"`
 }
 
 type record struct {
@@ -63,14 +76,14 @@ func unmarshalToken() (t token) {
 }
 
 func getRecordList(t token) {
-	var d domain
-	r, err := http.Post(t.Url, "application/x-www-form-urlencoded", strings.NewReader(t.Token+"&"+t.Format+"&"+t.Domain_id+"&"+t.Record_id))
+	var info response
+	api := t.Token + "&format=" + t.Format + "&domain_id=" + t.Domain_id //+ "&record_id=" + t.Record_id
+	r, err := http.Post(t.Url, "application/x-www-form-urlencoded", strings.NewReader(api))
 	if err != nil {
-		fmt.Println("Get domain list err")
 		fmt.Println(err.Error())
 	}
 	defer r.Body.Close()
 	body, err := ioutil.ReadAll(r.Body)
-	json.Unmarshal(body, &d)
-	fmt.Println(d)
+	json.Unmarshal(body, &info)
+	fmt.Println(info.Domain.Status)
 }
