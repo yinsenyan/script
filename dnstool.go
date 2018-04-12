@@ -17,6 +17,7 @@ package main
 
 import (
 	"encoding/json"
+	"flag"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -58,14 +59,14 @@ type info struct {
 }
 
 type record struct {
-	Id          string `json:“id”`
-	Ttl         string `json:"ttl"`
+	Id          string `json:"id"`
 	Value       string `json:"value"`
+	Enabled     string `json:"enabled"`
 	Status      string `json:"status`
-	Updated_on  string `json:"updated_on"`
 	Name        string `json:"name"`
 	Line        string `json:"line"`
 	Record_type string `json:"type"`
+	Remark      string `json:"remark"`
 }
 
 type api struct {
@@ -77,6 +78,12 @@ type api struct {
 	Domain_id string `json:"domain_id"`
 }
 
+var h = flag.Bool("h", false, "print help info")
+var help = flag.Bool("help", false, "print help info")
+var isp = flag.String("isp", "", "define isp, such:电信、联通、移动")
+var clu = flag.String("cluster", "", "define cluster, such:nb、xs、xq")
+var sta = flag.String("status", "", "set record status, such: enable、disable")
+
 func unmarshalApi() (a api) {
 	apifile, err := ioutil.ReadFile("api.json")
 	if err != nil {
@@ -86,11 +93,49 @@ func unmarshalApi() (a api) {
 	return
 }
 
+func changeDefaultRecord(cluster, record_status string, res allinfo, a api) (response allinfo) {
+	if record_status == "disable" {
+		for i := 0; i < len(res.Record)-1; i++ {
+			iscluster, _ := regexp.MatchString("ke-"+cluster, res.Record[i].Name)
+			if res.Record[i].Line == "联通" && iscluster {
+				postdate := a.Token + "&format=" + a.Format + "&domain_id=" + a.Domain_id + "&record_id=" + res.Record[i].Id + "&sub_domain=" + res.Record[i].Name + "&value=" + res.Record[i].Value + "&record_type=A" + "&record_line=默认"
+				response = invocateAPI(a.Rm, postdate)
+			}
+		}
+	}
+	if record_status == "enable" {
+		for i := 0; i < len(res.Record)-1; i++ {
+			iscluster, _ := regexp.MatchString(cluster, res.Record[i].Name)
+			if res.Record[i].Line == "默认" && iscluster {
+				postdate := a.Token + "&format=" + a.Format + "&domain_id=" + a.Domain_id + "&record_id=" + res.Record[i].Id + "&sub_domain=" + res.Record[i].Name + "&value=" + res.Record[i].Value + "&record_type=A" + "&record_line=" + res.Record[i].Remark
+				response = invocateAPI(a.Rs, postdate)
+			}
+		}
+	}
+	return
+}
+
+func changeRecordStatus(cluster, isp, record_status string, res allinfo, a api) (response allinfo) {
+	for i := 0; i < len(res.Record)-1; i++ {
+		iscluster, _ := regexp.MatchString("ke-"+cluster, res.Record[i].Name)
+		isisp, _ := regexp.MatchString(isp, res.Record[i].Line)
+		if iscluster && isisp {
+			postdate := a.Token + "&format=" + a.Format + "&domain_id=" + a.Domain_id + "&record_id=" + res.Record[i].Id + "&status=" + record_status
+			response = invocateAPI(a.Rs, postdate)
+		}
+	}
+	return
+}
+
 func getRecordList(a api) (response allinfo) {
-	postdate := a.Token + "&format=" + a.Format + "&domain_id=" + a.Domain_id //+ "&record_id=" + a.Record_id
-	r, err := http.Post(a.Rl, "application/x-www-form-urlencoded", strings.NewReader(postdate))
+	postdate := a.Token + "&format=" + a.Format + "&domain_id=" + a.Domain_id
+	response = invocateAPI(a.Rl, postdate)
+	return
+}
+
+func invocateAPI(url, postdate string) (response allinfo) {
+	r, err := http.Post(url, "application/x-www-form-urlencoded", strings.NewReader(postdate))
 	if err != nil {
-		fmt.Println(a.Rl)
 		fmt.Println("http request err : ", err.Error())
 	}
 	defer r.Body.Close()
@@ -99,36 +144,36 @@ func getRecordList(a api) (response allinfo) {
 		fmt.Println("get domain response body error")
 	}
 	json.Unmarshal(body, &response)
+	// fmt.Println(response.Status, response.Domain, response.Info)
+	// fmt.Println(postdate)
 	return
 }
 
 func main() {
 	a := unmarshalApi()
 	res := getRecordList(a)
-	fmt.Println(res.Record)
-	//changeRecordStatus("test", "test", "disable", res, a)
-}
 
-func changeRecordStatus(cluster, isp, record_status string, res allinfo, a api) (response allinfo) {
-	for i := 0; i < len(res.Record); i++ {
-		if b, _ := regexp.MatchString(cluster, res.Record[i].Name); b {
-			postdate := a.Token + "&format=" + a.Format + "&domain_id=" + a.Domain_id + "&record_id=" + res.Record[i].Id + "&status=" + record_status
-			r, err := http.Post(a.Rs, "application/x-www-form-urlencoded", strings.NewReader(postdate))
-			if err != nil {
-				fmt.Println("http request err : ", err.Error())
-			}
-			defer r.Body.Close()
-			body, err := ioutil.ReadAll(r.Body)
-			if err != nil {
-				fmt.Println("get domain response body error")
-			}
-			json.Unmarshal(body, &response)
-			fmt.Println(response.Status)
+	flag.Parse()
+	//The help info will be output when argument is -h/-help/--help, and list the all record
+	if *help || *h {
+		for i := 0; i <= len(res.Record)-1; i++ {
+			fmt.Println(res.Record[i].Name, res.Record[i].Line, res.Record[i].Value, res.Record[i].Enabled)
 		}
+		fmt.Println("输入参数，例如：--cluster=nb --isp=联通 --status=disable")
+	} else {
+		//If disable a default record , auto set the default is cucc
+		if *isp == "默认" && *sta == "disable" {
+			fmt.Println("You will disable the default record, the cucc will be set default record")
+			r2 := changeDefaultRecord(*clu, *sta, res, a)
+			fmt.Println("Set cucc to default, Response:", r2.Status.Message)
+		}
+		//if enable a default record, auto set the current default record to real line
+		if *isp == "默认" && *sta == "enable" {
+			fmt.Println("Recover a default record, the current default will be set real line(in record.remart)")
+			r2 := changeDefaultRecord(*clu, *sta, res, a)
+			fmt.Println("Recover real default, Response:", r2.Status.Message)
+		}
+		r1 := changeRecordStatus(*clu, *isp, *sta, res, a)
+		fmt.Println("Disable some record, Response:", r1.Status.Message)
 	}
-	return
 }
-
-// func (*record) modifyRecord(api string) {
-
-// }
